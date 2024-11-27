@@ -9,19 +9,25 @@ data = {
     "Обувь": [5, 10, 15, 20, 25],
 }
 
-# Подсчёт общего количества
-total = [sum(sales) for sales in zip(*data.values()[1:])]
+values = [data["Электроника"], data["Одежда"], data["Книги"], data["Обувь"]]
+keys = ["Электроника", "Одежда", "Книги", "Обувь"]
+
+# Подсчёт суммы по каждому возрастному диапазону
+total = []
+for sales in zip(*values):
+    total.append(sum(sales))
+
 grand_total = sum(total)
 
 # Расчёт вероятностей
 probabilities = {age_group: [] for age_group in data["Возрастная группа"]}
 for i, age_group in enumerate(data["Возрастная группа"]):
-    for sales in data.values()[1:]:
+    for sales in values[1:]:
         prob = sales[i] / total[i]
         probabilities[age_group].append(prob)
 
 # Отображение вероятностей
-print("Возрастная группа", " ".join(data.keys()[1:]), "Суммарная вероятность")
+print("Возрастная группа", " ".join(keys[1:]), "Суммарная вероятность")
 for age_group, prob in probabilities.items():
     print(age_group, " ".join(f"{p:.2f}" for p in prob), f"{sum(prob):.2f}")
 
@@ -34,18 +40,17 @@ def conditional_entropy(probabilities):
     return entropy
 
 conditional_entropies = {}
-for i, age_group in enumerate(data["Возрастная группа"]):
+for age_group in data["Возрастная группа"]:
     entropies = []
-    for sales in data.values()[1:]:
-        prob = probabilities[age_group][i]
+    for prob in probabilities[age_group]:
         if prob > 0:
             entropies.append(prob * np.log2(prob))
     conditional_entropies[age_group] = -sum(entropies)
 
 # Отображение условной энтропии
-print("\nВозрастная группа", " ".join(data.keys()[1:]), "Энтропия категории")
+print("\nВозрастная группа", " ".join(keys[1:]), "Энтропия категории")
 for age_group, entropies in conditional_entropies.items():
-    print(age_group, " ".join(f"{conditional_entropy(probabilities[age_group]):.2f}" for _ in data.values()[1:]), f"{entropies:.2f}")
+    print(age_group, " ".join(f"{conditional_entropy(probabilities[age_group]):.2f}" for _ in values[1:]), f"{entropies:.2f}")
 
 # Итоговая условная энтропия
 total_entropy = sum(conditional_entropies.values()) / len(conditional_entropies)
