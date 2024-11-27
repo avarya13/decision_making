@@ -3,7 +3,7 @@ import os
 import pandas as pd
 import numpy as np
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from task_2.task_2 import build_relationship_matrix
+from task_2.task import build_relationship_matrix
 
 def calculate_entropy(probabilities):
     """

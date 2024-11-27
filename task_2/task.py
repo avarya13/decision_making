@@ -3,7 +3,7 @@ import os
 import pandas as pd
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from task_1.task_1 import parse_tree_to_edges
+from task_1.task import parse_tree_to_edges
 
 
 def build_relationship_matrix(json_graph):
