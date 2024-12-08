@@ -1,3 +1,7 @@
+# Использование
+
+# python ./task4/task.py
+
 import math
 import csv
 import numpy as np

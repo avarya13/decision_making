@@ -1,5 +1,8 @@
-import numpy as np
+# Использование
 
+# python ./task5/task.py
+
+import numpy as np
 
 def build_relation_matrix(A):
     n = sum(len(item) if isinstance(item, list) else 1 for item in A)  # Общее число объектов

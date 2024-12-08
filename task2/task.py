@@ -1,146 +1,114 @@
+# Использование
+
+# python ./task2/task.py
+# python ./task2/task.py путь/к/вашему/файлу.json 
+
+
 import sys
 import os
+import json
 import pandas as pd
+import argparse 
 
+# Добавляем родительский каталог в sys.path для импорта модуля из task1
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from task_1.task import parse_tree_to_edges
+from task1.task import parse_tree_to_edges
 
 
 def build_relationship_matrix(json_graph):
     """
-    Build a relationship matrix from a given JSON tree structure.
+    Строит матрицу отношений на основе заданной структуры дерева в формате JSON.
     
-    Args:
-        json_graph (dict): The JSON tree structure representing the relationships.
+    Аргументы:
+        json_graph (dict): Структура дерева в формате JSON, представляющая отношения.
     
-    Returns:
-        pd.DataFrame: The DataFrame representing the relationship matrix.
+    Возвращает:
+        pd.DataFrame: DataFrame, представляющий матрицу отношений.
     """
 
-    # Convert the JSON tree to a list of edges
-    edges = parse_tree_to_edges(json_graph)  # Capture the edges returned by the function
-    print(f'Pairs "parent-child": {edges}')
+    # Преобразуем JSON-дерево в список рёбер
+    edges = parse_tree_to_edges(json_graph)
 
-    relationship_counts = {}
-
-    # Initialize all nodes in the relationship_counts dictionary
+    # Извлекаем уникальные узлы
+    nodes = set()
     for parent, child in edges:
-        if parent not in relationship_counts:
-            relationship_counts[parent] = initialize_relationship_dict()
-        if child not in relationship_counts:
-            relationship_counts[child] = initialize_relationship_dict()
+        nodes.add(parent)
+        nodes.add(child)
 
-    # Count relationships
-    # Immediate relationships (swap Г1 and Г2)
+    nodes = sorted(nodes)
+    relationship_matrix = {node: [0, 0, 0, 0, 0] for node in nodes}
+
+    # Прямые отношения
     for parent, child in edges:
-        relationship_counts[parent]['Immediate Subordinate (Г2)'] += 1  # Mark that parent has a child
-        relationship_counts[child]['Immediate Supervisor (Г1)'] += 1  # Mark that child has a parent
+        relationship_matrix[parent][0] += 1  # Управляет непосредственно
+        relationship_matrix[child][1] += 1  # Отчитывается непосредственно
 
-    # Create a map for indirect relationships
-    indirect_relationship_map = {k: [] for k in relationship_counts.keys()}
+    # Косвенные отношения
+    child_map = {node: [] for node in nodes}
+    parent_map = {node: [] for node in nodes}
+
     for parent, child in edges:
-        indirect_relationship_map[parent].append(child)  # Build a tree structure for indirect counting
+        child_map[parent].append(child)
+        parent_map[child].append(parent)
 
-    # Count indirect relationships (swap Г3 and Г4)
-    for node in relationship_counts.keys():
-        relationship_counts[node]['Indirect Subordinate (Г4)'] = count_descendants(node, indirect_relationship_map)
+    # Подсчёт внуков (косвенное управление)
+    for node in nodes:
+        grandchildren = set()
+        for child in child_map[node]:
+            grandchildren.update(child_map[child])
+        relationship_matrix[node][2] = len(grandchildren)
 
-    # To count indirect supervisors, we build the reverse mapping
-    ancestor_map = {k: [] for k in relationship_counts.keys()}
+    # Подсчёт бабушек и дедушек (косвенный отчёт)
+    for node in nodes:
+        grandparents = set()
+        for parent in parent_map[node]:
+            grandparents.update(parent_map[parent])
+        relationship_matrix[node][3] = len(grandparents)
+
+    # Совместная подчинённость (сиблинги)
+    sibling_map = {node: set() for node in nodes}
     for parent, child in edges:
-        ancestor_map[child].append(parent)  # Build a tree structure for ancestors
+        siblings = [other for other in child_map[parent] if other != child]
+        sibling_map[child].update(siblings)
 
-    # Count indirect supervisors
-    for node in relationship_counts.keys():
-        relationship_counts[node]['Indirect Supervisor (Г3)'] = count_ancestors(node, ancestor_map)
+    for node in nodes:
+        relationship_matrix[node][4] = len(sibling_map[node])
 
-    # Count co-subordinate relationships
-    for parent, child in edges:
-        siblings = [sibling for sibling in indirect_relationship_map.get(parent, []) if sibling != child]
-        relationship_counts[child]['Co-subordinate (Г5)'] = len(siblings)
-
-    # Create a DataFrame for visualization
-    df = pd.DataFrame(relationship_counts)
-    df.index.name = 'Node'
-
-    return df.sort_index(axis=1)
-
-
-def initialize_relationship_dict():
-    """
-    Initialize the relationship dictionary for each node.
-    
-    Returns:
-        dict: A dictionary with keys for each type of relationship.
-    """
-    return {
-        'Immediate Supervisor (Г1)': 0,
-        'Immediate Subordinate (Г2)': 0,
-        'Indirect Supervisor (Г3)': 0,
-        'Indirect Subordinate (Г4)': 0,
-        'Co-subordinate (Г5)': 0
-    }
-
-
-# Function to recursively count ancestors
-def count_ancestors(node, ancestor_map):
-    """
-    Recursively count the ancestors of a node.
-
-    Args:
-        node (str): The node whose ancestors are being counted.
-        ancestor_map (dict): A mapping of each node to its ancestors.
-    
-    Returns:
-        int: The number of ancestors for the given node.
-    """
-    count = 0
-    if node in ancestor_map:
-        for parent in ancestor_map[node]:
-            count += 1 + count_ancestors(parent, ancestor_map)
-    return count
-
-
-# Function to recursively count descendants
-def count_descendants(node, indirect_relationship_map):
-    """
-    Recursively count the descendants of a node.
-
-    Args:
-        node (str): The node whose descendants are being counted.
-        indirect_relationship_map (dict): A mapping of each node to its descendants.
-    
-    Returns:
-        int: The number of descendants for the given node.
-    """
-    count = 0
-    if node in indirect_relationship_map:
-        for child in indirect_relationship_map[node]:
-            count += 1 + count_descendants(child, indirect_relationship_map)
-    return count
+    # Создаём DataFrame из матрицы отношений
+    df = pd.DataFrame.from_dict(relationship_matrix, orient="index")
+    return df
 
 
 def main():
-    # Example usage with a predefined JSON tree
-    json_graph = {
-        "1": {
-            "2": {
-                "3": {},
-                "4": {
-                    "5": {},
-                    "6": {}
-                }
-            }
-        }
-    }
+    # Создаем парсер для аргументов командной строки
+    parser = argparse.ArgumentParser(description="Построение матрицы отношений из JSON-дерева")
+    
+    # Добавляем аргумент для пути к JSON-файлу с значением по умолчанию
+    parser.add_argument('json_file', nargs='?', default='task2/graph.json', help='Путь к JSON-файлу')
+    
+    # Разбираем аргументы
+    args = parser.parse_args()
 
-    # Build the relationship matrix
+    # Чтение JSON-графа из указанного файла
+    try:
+        with open(args.json_file, "r") as json_file:
+            json_graph = json.load(json_file)
+    except FileNotFoundError:
+        print(f"Ошибка: JSON файл не найден: {args.json_file}")
+        return
+    except json.JSONDecodeError:
+        print(f"Ошибка: Некорректный формат JSON в файле: {args.json_file}")
+        return
+
+    # Строим матрицу отношений
     df = build_relationship_matrix(json_graph)
-    print(df)
 
-    # Save the DataFrame to a CSV file
-    df.to_csv('relationship_matrix.csv')
+    # Сохраняем в CSV и выводим на экран
+    output_file = "relationship_matrix.csv"
+    df.to_csv(output_file, index=False, header=False)
+    print(df.to_string(index=False, header=False))
 
 
 if __name__ == "__main__":
     main()
+

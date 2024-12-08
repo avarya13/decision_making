@@ -1,77 +1,67 @@
+# Использование
+
+# python ./task3/task.py
+# python ./task3/task.py путь/к/вашему/файлу.json 
+
 import sys
 import os
-import pandas as pd
+import argparse
+import json
 import numpy as np
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from task_2.task import build_relationship_matrix
+from task2.task import build_relationship_matrix  # Функция для построения матрицы отношений
 
 def calculate_entropy(probabilities):
     """
-    Calculate entropy for a given list of probabilities using the formula:
-    H = -sum(p * log2(p)) for p > 0.
-    
-    Args:
-        probabilities (list or array): The probabilities for which entropy is to be calculated.
-        
-    Returns:
-        float: The entropy value.
+    Вычисление энтропии для списка вероятностей.
     """
     probabilities = np.array(probabilities)
-    probabilities = probabilities[probabilities > 0]  # Avoid log(0)
+    probabilities = probabilities[probabilities > 0]  # Избегаем log(0)
     entropy = -np.sum(probabilities * np.log2(probabilities))
     return entropy
 
 def calculate_overall_entropy(df):
     """
-    Calculate the overall entropy across all nodes and all relationship types.
-    
-    Args:
-        df (pd.DataFrame): The relationship matrix where each row corresponds to a relationship type
-                           and each column corresponds to a node.
-    
-    Returns:
-        float: The overall (global) entropy value.
+    Рассчитывает общую энтропию по матрице отношений.
     """
     num_nodes = len(df.columns)
     
     if num_nodes <= 1:
-        print("Entropy calculation is not possible with one or fewer nodes.")
+        print("Недостаточно узлов для расчёта энтропии.")
         return 0.0  
 
-    # Normalize values across all nodes for each relationship type
+    # Нормализация и вычисление энтропии
     probabilities = df / (num_nodes - 1)
-    
-    # Calculate the overall entropy
-    overall_entropy = calculate_entropy(probabilities.values.flatten())
-    
-    return overall_entropy
-
+    return calculate_entropy(probabilities.values.flatten())
 
 def main():
-    # Example usage with a predefined JSON tree
-    json_graph = {
-        "1": {
-            "2": {
-                "3": {
-                    "5": {},
-                    "6": {}
-                },
-                "4": {
-                    "7": {},
-                    "8": {}
-                }
-            }
-        }
-    }
+    # Парсер аргументов
+    parser = argparse.ArgumentParser(description="Построение матрицы отношений из JSON-графа")
+    
+    # Аргумент для пути к JSON-файлу
+    parser.add_argument('json_file', nargs='?', default='task3/graph.json', help='Путь к JSON-файлу')
+    
+    # Разбор аргументов
+    args = parser.parse_args()
 
-    # Build the relationship matrix
+    # Чтение JSON-графа
+    try:
+        with open(args.json_file, "r") as json_file:
+            json_graph = json.load(json_file)
+    except FileNotFoundError:
+        print(f"Файл не найден: {args.json_file}")
+        return
+    except json.JSONDecodeError:
+        print(f"Ошибка формата JSON: {args.json_file}")
+        return
+
+    # Построение матрицы отношений
     df = build_relationship_matrix(json_graph)
-    print(df)
 
-    # Calculate the overall (global) entropy
+    # Рассчитываем энтропию
     overall_entropy = calculate_overall_entropy(df)
-    print(f"\nOverall Entropy: {overall_entropy:.4f}")
-
+    print(round(overall_entropy, 2))
 
 if __name__ == "__main__":
     main()
+
