@@ -49,7 +49,7 @@ def evaluate_rules(temp, membership_functions, rules):
 
 def defuzzification(rule_activations, membership_functions):
     """
-    Дефаззификация методом центра тяжести (Center of Gravity).
+    Дефаззификация методом.
     """
     numerator = 0
     denominator = 0
@@ -78,7 +78,7 @@ def fuzzy_controller(temp_json, heat_json, rules_json, temp):
     return power
 
 # Пример использования
-if __name__ == "__main__":
+def main():
     temp_json = '{"температура": [ {"id": "холодно", "points": [[0,1],[18,1],[22,0],[50,0]] }, {"id": "комфортно", "points": [[18,0],[22,1],[24,1],[26,0]] }, {"id": "жарко", "points": [[0,0],[24,0],[26,1],[50,1]] }]}'
     heat_json = '{"температура": [ {"id": "слабый", "points": [[0,0],[0,1],[5,1],[8,0]] }, {"id": "умеренный", "points": [[5,0],[8,1],[13,1],[16,0]] }, {"id": "интенсивный", "points": [[13,0],[18,1],[23,1],[26,0]] }]}'
     rules_json = '[ ["холодно", "интенсивный"], ["комфортно", "умеренный"], ["жарко", "слабый"] ]'
@@ -91,3 +91,7 @@ if __name__ == "__main__":
     for temp in temperatures:
         power = fuzzy_controller(temp_json, heat_json, rules_json, temp)
         print(f"{temp:>11} | {power:>8.2f}")
+
+
+if __name__ == "__main__":
+    main()
